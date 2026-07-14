@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>Phase 0 - 最小可跑通 Demo</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 40px auto; }
+    #output { border: 1px solid #ccc; padding: 16px; min-height: 100px; white-space: pre-wrap; }
+    input { width: 70%; padding: 8px; }
+    button { padding: 8px 16px; }
+  </style>
+</head>
+<body>
+  <h2>🤖 Phase 0 Demo</h2>
+  <input id="userInput" placeholder="输入你的问题..." />
+  <button onclick="sendMessage()">发送</button>
+  <div id="output"></div>
+
+  <script>
+    async function sendMessage() {
+      const input = document.getElementById("userInput");
+      const output = document.getElementById("output");
+      const message = input.value;
+      output.textContent = "";
+      input.value = "";
+
+      const response = await fetch("http://localhost:8000/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        // 解析 SSE 格式："data: xxx\n\n"
+        const lines = chunk.split("\n\n").filter(Boolean);
+        for (const line of lines) {
+          const content = line.replace("data: ", "");
+          if (content === "[DONE]") continue;
+          output.textContent += content;
+        }
+      }
+    }
+  </script>
+</body>
+</html>
